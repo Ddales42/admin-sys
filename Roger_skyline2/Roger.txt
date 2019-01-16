@@ -1,0 +1,126 @@
+***********************************************
+*                                             *
+*                                             *
+*       ROGER_SKYLINE_2                       *
+*                                             *
+***********************************************
+
+shasum 71f10f02355390c5944b66d486cb86b59ef84fa4
+
+*/ Configuration Droit Admin-Sudo
+
+- adduser <tonuser> pas obligatoire sous debian
+- su -
+- apt-get install sudo
+- visudo [TonUser] ALL = (ALL:ALL) ALL
+- passwd -d root
+- exit
+--------------------------------------
+
+
+
+*/ Configuration de l'interfaces Réseaux
+
+- sudo apt-get install vim
+- sudo vim /etc/network/interfaces
+- replace dhcp -> static
+          adress 10.0.2.0
+          netmask 255.255.255.252
+          gateway 10.0.2.2
+----------------------------------
+
+
+
+*/ Configuration de SSH
+
+- ssh-keygen
+- sudo vim etc/ssh/sshd_config
+- changer port [port]
+- PermitLogin -> no
+- PassewordAuthentification -> no
+- PermitPassewordAuthentification -> no
+- PubKeyAuthentification -> yes
+- Autorizedfiles .shh/id_rsa .ssh/id_rsa.pub
+- sudo /etc/init.d/ssh restart
+- sudo iptables -A INPUT -p tcp -m tcp --dport [port] -j ACCEPT
+Conection test
+- ip addr
+-ssh -p [port] [user]@10.0.2.15
+---------------------------------------------------------------
+
+
+
+*/ Configuration FireWall
+
+  Reset FireWall
+- sudo iptables -F
+- sudo iptables -X
+- sudo iptables -t nat -F
+- sudo iptables -t nat -X
+- sudo iptables -t mangle -F
+- sudo iptables -t mangle -X
+- sudo iptables -P INPUT ACCEPT
+- sudo iptables -P FORWARD ACCEPT
+- sudo iptables -P OUTPUT ACCEPT
+- sudo iptables -A INPUT -p tcp -m tcp --dport[port] -j ACCEPT
+
+  Setup FireWall
+- sudo iptables -P INPUT DROP
+- sudo iptables -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+- sudo iptables -A INPUT -m conntrack --ctstate INVALID -j DROP
+- sudo iptables -A INPUT -p tcp -m tcp --dport[port] -j ACCEPT
+---------------------------------------------------------------
+
+
+*/ Configuration Attack_DDOS
+
+- sudo iptables -A INPUT -m limit --limit-burst 10 --limit 20/s -j DROP
+---------------------------------------------------------------------
+
+
+
+*/ Configuration Scan_Port
+
+- sudo iptables -A INPUT -p tcp --tcp-flags SYN,ACK,FIN,RST RST -m
+  limit --limit 60/s --limit-burst 2 -j RETURN
+------------------------------------------------------------------
+
+
+
+*/ Realisation script Maj-package
+
+Ecrire la ligne suivante dans /etc/crontab:
+0 4 * * 1 root apt-get update && apt-get upgrade -y > /var/log/update_script.log
+@reboot root sudo apt-get update && sudo apt-get upgrade -y > /var/log/update_script.log
+--------------------------------------------------------------------------------
+
+
+*/ Realisation script Check si Modification
+
+- sudo apt-get install mailutils
+- sudo apt-get install ssmtp
+/etc/crontab file:
+0 0 * * * root  sh /usr/script/00
+
+MD5SUM=`cat /etc/crontab`
+NEWSUM=`md5sum /etc/crontab | cut -d " " -f 1`
+
+if [ "$MD5SUM" != "$NEWSUM" ]
+	then
+	md5sum /etc/crontab | cut -d " " -f 1 > /etc/crontab
+	echo ">>>> CRONTABSUM CREATED."
+	mail -s "The file crontab was modified" root < /etc/crontab
+fi
+
+
+
+MD5SUM=`cat /root/crontabsum`
+NEWSUM=`md5sum /etc/crontab | cut -d " " -f 1`
+
+if [ "$MD5SUM" != "$NEWSUM" ]
+	then
+	md5sum /etc/crontab | cut -d " " -f 1 > /root/crontabsum
+	echo ">>>> CRONTABSUM CREATED."
+	mail -s "The file crontab was modified" root < /etc/crontab
+fi
+-------------------------------------------------------------

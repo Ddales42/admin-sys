@@ -20,13 +20,14 @@ shasum 71f10f02355390c5944b66d486cb86b59ef84fa4
 
 
 */ Configuration de l'interfaces Réseaux
-
+- bridge connexion
 - sudo apt-get install vim
 - sudo vim /etc/network/interfaces
+- auto enp0s3
 - replace dhcp -> static
-          adress 10.0.2.0
+          adress 10.11.220.220
           netmask 255.255.255.252
-          gateway 10.0.2.2
+          gateway 10.11.254.254
 ----------------------------------
 
 
@@ -45,7 +46,7 @@ shasum 71f10f02355390c5944b66d486cb86b59ef84fa4
 - sudo iptables -A INPUT -p tcp -m tcp --dport [port] -j ACCEPT
 Conection test
 - ip addr
--ssh -p [port] [user]@10.0.2.15
+-ssh -p [port] [user]@10.11.220.220
 ---------------------------------------------------------------
 
 
@@ -75,14 +76,38 @@ Conection test
 */ Configuration Attack_DDOS
 
 - sudo iptables -A INPUT -m limit --limit-burst 10 --limit 20/s -j DROP
+- ajouter dans votre fichier /etc/fail2ban/jail.local
+- a voir pour sudo apt-get install varnish
+[http-get-dos]
+enabled = true
+port = http,https
+filter = http-get-dos
+logpath = /var/log/varnish/varnishncsa.log
+maxretry = 300
+findtime = 300
+bantime = 600
+action = iptables[name=HTTP, port=http, protocol=tcp]
+
+- éditer le fichier /etc/fail2ban/filter.d/http-get-dos.conf
+[Definition]
+
+failregex = ^<HOST>.*\"GET
+
+ignoreregex =
+
+- éditer le fichier /etc/fail2ban/filter.d/http-get-dos.conf
+- sudo systemctl start fail2ban
+- sudo systemctl status fai2ban
 ---------------------------------------------------------------------
 
 
 
 */ Configuration Scan_Port
 
-- sudo iptables -A INPUT -p tcp --tcp-flags SYN,ACK,FIN,RST RST -m
-  limit --limit 60/s --limit-burst 2 -j RETURN
+  - iptables -N port_scan
+	- iptables -A port_scan -p tcp --tcp-flags SYN,ACK,FIN,RST RST -m
+		limit --limit 60/s --limit-burst 2 -j RETURN
+	- iptables -A port_scan -j DROP
 ------------------------------------------------------------------
 
 
